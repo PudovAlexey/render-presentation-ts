@@ -20,4 +20,32 @@ export type FetchedMessages = {
   results: Omit<Message, "isMessageEdit" | "message" | "img">[];
 };
 
-export type MessagesDict = Record<number, Message>
+export type MessagesDict = Record<number, Message>;
+
+export type ChatAction =
+  | {
+      type: "sendMessage";
+      payload: {
+        inputValue: string;
+      };
+    }
+  | {
+      type: "onDeleteMessage" | "onStartChangeUserMessage" | "onMessageSave";
+      payload: {
+        messageId: Message["id"];
+      };
+    }
+  | {
+      type: "changeMessage";
+      payload: {
+        value: string;
+        messageId: Message["id"];
+      };
+    }
+  | {
+      type: "fetchMessages";
+      payload: {
+        messages: MessagesDict;
+      };
+    };
+
