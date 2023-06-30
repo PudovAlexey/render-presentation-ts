@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useState } from "react";
 import {
   Avatar,
   Box,
@@ -14,76 +14,37 @@ import {
 import background from "../public/background.jpg";
 import styled from "@emotion/styled";
 import iconSrc from "../public/icons8-star-wars-1344.png";
-import { fetchMessages, fetchThousandMessages } from "../utils/fetchMessages";
-import { imgConfig } from "../utils/imgConfig";
-import { Message, MessagesDict } from "../types/types";
+import Leia from ".././public/avatar/leia-organa.jpg";
+import DartVaider from ".././public/avatar/Dart Waider.jpg";
+import Luke from ".././public/avatar/Luke_Skywalker.jpg";
+import Owen from ".././public/avatar/Owen-lars.jpg";
+import { useDispatch, useStoreContext } from "../ChatContext";
+import { Message } from "../types/types";
+
+export const imgConfig = {
+  "Luke Skywalker": Luke,
+  "Darth Vader": DartVaider,
+  "Leia Organa": Leia,
+  "Owen Lars": Owen,
+};
 
 export function Chat() {
-  const [messagesById, setMessagesById] = useState<MessagesDict>({});
+  const messagesById = useStoreContext();
+  const dispatch = useDispatch();
   const [inputValue, setInputValue] = useState("");
   const [sortMessages, setSortMessages] = useState(false);
 
-  useEffect(() => {
-    fetchThousandMessages().then((messages) => {
-      setMessagesById(messages);
-    });
-  }, []);
-
   const sendMessage = () => {
-    const newId: Message["id"] = +new Date();
-
-    setMessagesById((prev) => ({
-      ...prev,
-      [newId]: {
-        id: newId,
-        img: imgConfig["Darth Vader"],
-        name: "Darth Vader",
-        message: inputValue,
-        isMessageEdit: false,
+    dispatch({
+      type: "sendMessage",
+      payload: {
+        inputValue,
       },
-    }));
+    });
   };
 
   const onSort = () => {
     setSortMessages((prev) => !prev);
-  };
-
-  const onDeleteMessage = (messageId: Message["id"]) => {
-    const cloneMessagesById = { ...messagesById };
-
-    delete cloneMessagesById[messageId];
-
-    setMessagesById(cloneMessagesById);
-  };
-
-  const onStartChangeUserMessage = (messageId: Message["id"]) => {
-    setMessagesById((prev) => ({
-      ...prev,
-      [messageId]: {
-        ...prev[messageId],
-        isMessageEdit: true,
-      },
-    }));
-  };
-
-  const changeMessage = (messageId: Message["id"], value: string) => {
-    setMessagesById((prev) => ({
-      ...prev,
-      [messageId]: {
-        ...prev[messageId],
-        message: value,
-      },
-    }));
-  };
-
-  const onMessageSave = (messageId: Message["id"]) => {
-    setMessagesById((prev) => ({
-      ...prev,
-      [messageId]: {
-        ...prev[messageId],
-        isMessageEdit: false,
-      },
-    }));
   };
 
   return (
@@ -100,61 +61,9 @@ export function Chat() {
               .sort((a, b) => (!sortMessages ? +a - +b : +b - +a))
               .map((id) => {
                 const messageId = +id as Message["id"];
-                const message = messagesById[messageId];
-                return (
-                  <Box>
-                    <ListItem
-                      key={id}
-                      secondaryAction={
-                        message.isMessageEdit ? (
-                          <Button
-                            color="success"
-                            variant="contained"
-                            onClick={() => onMessageSave(messageId)}
-                          >
-                            SAVE
-                          </Button>
-                        ) : (
-                          <Box>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              onClick={() =>
-                                onStartChangeUserMessage(messageId)
-                              }
-                            >
-                              EDIT MESSAGE
-                            </Button>
-                            <Button onClick={() => onDeleteMessage(messageId)}>
-                              DELETE MESSAGE
-                            </Button>
-                          </Box>
-                        )
-                      }
-                    >
-                      <ListItemAvatar>
-                        <Avatar src={message.img}></Avatar>
-                      </ListItemAvatar>
-                      <Box>
-                        <Typography fontWeight={"bold"}>
-                          {message.name}
-                        </Typography>
-                        {!message.isMessageEdit ? (
-                          <MessageTypography>
-                            {message.message}
-                          </MessageTypography>
-                        ) : (
-                          <TextField
-                            fullWidth
-                            onChange={(e) => changeMessage(messageId, e.target.value)}
-                            value={message.message}
-                          />
-                        )}
-                      </Box>
-                    </ListItem>
-                    <Divider />
-                  </Box>
-                );
+
+                const messageItem = messagesById[messageId];
+                return <MessageComponent key={id} messageItem={messageItem} />;
               })}
           </List>
         </AppBox>
@@ -175,6 +84,101 @@ export function Chat() {
     </Root>
   );
 }
+
+const MessageComponent = React.memo(function Message({
+  messageItem,
+}: {
+  messageItem: Message;
+}) {
+  const { id, name, isMessageEdit, img, message } = messageItem;
+  const dispatch = useDispatch();
+
+  const onDeleteMessage = (messageId: Message["id"]) => {
+    dispatch({
+      type: "onDeleteMessage",
+      payload: {
+        messageId,
+      },
+    });
+  };
+
+  const onStartChangeUserMessage = (messageId: Message["id"]) => {
+    dispatch({
+      type: "onStartChangeUserMessage",
+      payload: {
+        messageId,
+      },
+    });
+  };
+
+  const changeMessage = (messageId: Message["id"], value: string) => {
+    dispatch({
+      type: "changeMessage",
+      payload: {
+        messageId,
+        value,
+      },
+    });
+  };
+
+  const onMessageSave = (messageId: Message["id"]) => {
+    dispatch({
+      type: "onMessageSave",
+      payload: {
+        messageId,
+      },
+    });
+  };
+
+  return (
+    <Box>
+      <ListItem
+        key={id}
+        secondaryAction={
+          isMessageEdit ? (
+            <Button
+              color="success"
+              variant="contained"
+              onClick={() => onMessageSave(id)}
+            >
+              SAVE
+            </Button>
+          ) : (
+            <Box>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={() => onStartChangeUserMessage(id)}
+              >
+                EDIT MESSAGE
+              </Button>
+              <Button onClick={() => onDeleteMessage(id)}>
+                DELETE MESSAGE
+              </Button>
+            </Box>
+          )
+        }
+      >
+        <ListItemAvatar>
+          <Avatar src={img}></Avatar>
+        </ListItemAvatar>
+        <Box>
+          <Typography fontWeight={"bold"}>{name}</Typography>
+          {!isMessageEdit ? (
+            <MessageTypography>{message}</MessageTypography>
+          ) : (
+            <TextField
+              fullWidth
+              onChange={(e) => changeMessage(id, e.target.value)}
+              value={message}
+            />
+          )}
+        </Box>
+      </ListItem>
+      <Divider />
+    </Box>
+  );
+});
 
 const Root = styled(Box)`
   position: relative;
