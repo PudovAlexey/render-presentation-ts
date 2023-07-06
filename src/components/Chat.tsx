@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Avatar,
   Box,
@@ -22,6 +22,10 @@ export function Chat() {
   const [messagesById, setMessagesById] = useState<MessagesDict>({});
   const [inputValue, setInputValue] = useState("");
   const [sortMessages, setSortMessages] = useState(false);
+  const messagesRef = useRef<React.Dispatch<
+    React.SetStateAction<MessagesDict>
+  > | null>();
+  messagesRef.current = setMessagesById;
 
   useEffect(() => {
     fetchThousandMessages().then((messages) => {
@@ -48,43 +52,13 @@ export function Chat() {
     setSortMessages((prev) => !prev);
   };
 
-  const onDeleteMessage = (messageId: Message["id"]) => {
+  const onDeleteMessage = useCallback((messageId: Message["id"]) => {
     const cloneMessagesById = { ...messagesById };
 
     delete cloneMessagesById[messageId];
 
     setMessagesById(cloneMessagesById);
-  };
-
-  const onStartChangeUserMessage = (messageId: Message["id"]) => {
-    setMessagesById((prev) => ({
-      ...prev,
-      [messageId]: {
-        ...prev[messageId],
-        isMessageEdit: true,
-      },
-    }));
-  };
-
-  const changeMessage = (messageId: Message["id"], value: string) => {
-    setMessagesById((prev) => ({
-      ...prev,
-      [messageId]: {
-        ...prev[messageId],
-        message: value,
-      },
-    }));
-  };
-
-  const onMessageSave = (messageId: Message["id"]) => {
-    setMessagesById((prev) => ({
-      ...prev,
-      [messageId]: {
-        ...prev[messageId],
-        isMessageEdit: false,
-      },
-    }));
-  };
+  }, []);
 
   return (
     <Root>
@@ -102,58 +76,16 @@ export function Chat() {
                 const messageId = +id as Message["id"];
                 const message = messagesById[messageId];
                 return (
-                  <Box>
-                    <ListItem
-                      key={id}
-                      secondaryAction={
-                        message.isMessageEdit ? (
-                          <Button
-                            color="success"
-                            variant="contained"
-                            onClick={() => onMessageSave(messageId)}
-                          >
-                            SAVE
-                          </Button>
-                        ) : (
-                          <Box>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              onClick={() =>
-                                onStartChangeUserMessage(messageId)
-                              }
-                            >
-                              EDIT MESSAGE
-                            </Button>
-                            <Button onClick={() => onDeleteMessage(messageId)}>
-                              DELETE MESSAGE
-                            </Button>
-                          </Box>
-                        )
-                      }
-                    >
-                      <ListItemAvatar>
-                        <Avatar src={message.img}></Avatar>
-                      </ListItemAvatar>
-                      <Box>
-                        <Typography fontWeight={"bold"}>
-                          {message.name}
-                        </Typography>
-                        {!message.isMessageEdit ? (
-                          <MessageTypography>
-                            {message.message}
-                          </MessageTypography>
-                        ) : (
-                          <TextField
-                            fullWidth
-                            onChange={(e) => changeMessage(messageId, e.target.value)}
-                            value={message.message}
-                          />
-                        )}
-                      </Box>
-                    </ListItem>
-                    <Divider />
-                  </Box>
+                  <MessageComponent
+                    key={messageId}
+                    onDeleteMessage={onDeleteMessage}
+                    setMessagesRef={
+                      messagesRef as React.MutableRefObject<
+                        React.Dispatch<React.SetStateAction<MessagesDict>>
+                      >
+                    }
+                    message={message}
+                  />
                 );
               })}
           </List>
@@ -175,6 +107,96 @@ export function Chat() {
     </Root>
   );
 }
+
+const MessageComponent = React.memo(function Message({
+  message,
+  setMessagesRef,
+  onDeleteMessage,
+}: {
+  message: Message;
+  setMessagesRef: React.MutableRefObject<
+    React.Dispatch<React.SetStateAction<MessagesDict>>
+  >;
+  onDeleteMessage: (messageId: number) => void;
+}) {
+  const onStartChangeUserMessage = (messageId: Message["id"]) => {
+    setMessagesRef.current((prev) => ({
+      ...prev,
+      [messageId]: {
+        ...prev[messageId],
+        isMessageEdit: true,
+      },
+    }));
+  };
+
+  const changeMessage = (messageId: Message["id"], value: string) => {
+    setMessagesRef.current((prev) => ({
+      ...prev,
+      [messageId]: {
+        ...prev[messageId],
+        message: value,
+      },
+    }));
+  };
+
+  const onMessageSave = (messageId: Message["id"]) => {
+    setMessagesRef.current((prev) => ({
+      ...prev,
+      [messageId]: {
+        ...prev[messageId],
+        isMessageEdit: false,
+      },
+    }));
+  };
+
+  return (
+    <Box>
+      <ListItem
+        secondaryAction={
+          message.isMessageEdit ? (
+            <Button
+              color="success"
+              variant="contained"
+              onClick={() => onMessageSave(message.id)}
+            >
+              SAVE
+            </Button>
+          ) : (
+            <Box>
+              <Button
+                variant="contained"
+                color="success"
+                onClick={() => onStartChangeUserMessage(message.id)}
+              >
+                EDIT MESSAGE
+              </Button>
+              <Button onClick={() => onDeleteMessage(message.id)}>
+                DELETE MESSAGE
+              </Button>
+            </Box>
+          )
+        }
+      >
+        <ListItemAvatar>
+          <Avatar src={message.img}></Avatar>
+        </ListItemAvatar>
+        <Box>
+          <Typography fontWeight={"bold"}>{message.name}</Typography>
+          {!message.isMessageEdit ? (
+            <MessageTypography>{message.message}</MessageTypography>
+          ) : (
+            <TextField
+              fullWidth
+              onChange={(e) => changeMessage(message.id, e.target.value)}
+              value={message.message}
+            />
+          )}
+        </Box>
+      </ListItem>
+      <Divider />
+    </Box>
+  );
+});
 
 const Root = styled(Box)`
   position: relative;
