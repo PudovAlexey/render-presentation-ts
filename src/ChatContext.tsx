@@ -16,17 +16,6 @@ const DispatchContext = createContext<Dispatch<ChatAction> | null>(null);
 export function ChatContext({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, {});
 
-  useEffect(() => {
-    fetchThousandMessages().then((messages: MessagesDict) => {
-      dispatch({
-        type: "fetchMessages",
-        payload: {
-          messages,
-        },
-      });
-    });
-  }, []);
-
   return (
     <DispatchContext.Provider value={useMemo(() => dispatch, [])}>
       <StoreContext.Provider value={state}>{children}</StoreContext.Provider>
@@ -38,47 +27,15 @@ const reducer = (state: MessagesDict, action: ChatAction): MessagesDict => {
   const { type, payload } = action;
   switch (type) {
     case "sendMessage":
-      const newId = +new Date();
-
-      return {
-        ...state,
-        [newId]: {
-          id: newId,
-          img: imgConfig["Darth Vader"],
-          name: "Darth Vader",
-          message: payload.inputValue,
-          isMessageEdit: false,
-        },
-      };
+      return state;
     case "onDeleteMessage":
-      const cloneMessagesById = { ...state };
-
-      delete cloneMessagesById[payload.messageId];
-      return cloneMessagesById;
+      return state;
     case "onStartChangeUserMessage":
-      return {
-        ...state,
-        [payload.messageId]: {
-          ...state[payload.messageId],
-          isMessageEdit: true,
-        },
-      };
+      return state;
     case "changeMessage":
-      return {
-        ...state,
-        [payload.messageId]: {
-          ...state[payload.messageId],
-          message: payload.value,
-        },
-      };
+      return state;
     case "onMessageSave":
-      return {
-        ...state,
-        [payload.messageId]: {
-          ...state[payload.messageId],
-          isMessageEdit: false,
-        },
-      };
+      return state;
     case "fetchMessages":
       return action.payload.messages;
     default:

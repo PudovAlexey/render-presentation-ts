@@ -10,16 +10,14 @@ import { ChatContext } from "./ChatContext";
 
 function App() {
   return (
-    <ChatContext>
-      <Box className="App">
-        <Routes>
-          <Route path="/" element={<Start />}></Route>
-          <Route path="/intro" element={<StarWarsIntro />}></Route>
-          <Route path="/static-intro" element={<StaticIntro />}></Route>
-          <Route path="/list" element={<Chat />}></Route>
-        </Routes>
-      </Box>
-    </ChatContext>
+    <Box className="App">
+      <Routes>
+        <Route path="/" element={<Start />}></Route>
+        <Route path="/intro" element={<StarWarsIntro />}></Route>
+        <Route path="/static-intro" element={<StaticIntro />}></Route>
+        <Route path="/list" element={<Chat />}></Route>
+      </Routes>
+    </Box>
   );
 }
 
