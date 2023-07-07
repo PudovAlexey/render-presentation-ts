@@ -44,14 +44,82 @@ const reducer = (state: MessagesState, action: ChatAction): MessagesState => {
   const { type, payload } = action;
   switch (type) {
     case "sendMessage":
+      const newId = +new Date();
 
+      return {
+        ...state,
+        input: "",
+        messagesById: {
+          ...state.messagesById,
+          [newId]: {
+            id: newId,
+            img: imgConfig["Darth Vader"],
+            name: "Darth Vader",
+            message: state.input,
+            isMessageEdit: false,
+          },
+        },
+      };
     case "onDeleteMessage":
+      const cloneMessagesById = { ...state.messagesById };
+
+      delete cloneMessagesById[payload.messageId];
+
+      return {
+        ...state,
+        messagesById: cloneMessagesById,
+      };
     case "onStartChangeUserMessage":
+      return {
+        ...state,
+        messagesById: {
+          ...state.messagesById,
+          [payload.messageId]: {
+            ...state.messagesById[payload.messageId],
+            isMessageEdit: true,
+          },
+        },
+      };
     case "changeMessage":
+      return {
+        ...state,
+        messagesById: {
+          ...state.messagesById,
+          [payload.messageId]: {
+            ...state.messagesById[payload.messageId],
+            message: payload.value,
+          },
+        },
+      };
     case "onMessageSave":
+      return {
+        ...state,
+        messagesById: {
+          ...state.messagesById,
+          [payload.messageId]: {
+            ...state.messagesById[payload.messageId],
+            isMessageEdit: false,
+          },
+        },
+      };
     case "fetchMessages":
+      return {
+        ...state,
+        messagesById: {
+          ...action.payload.messages,
+        },
+      };
+
     case "setInput":
+      return {
+        ...state,
+        input: payload.value,
+      };
     case "setSort":
+      return {
+        ...state,
+        sortMessages: !state.sortMessages,
+      };
     default:
       return state;
   }
