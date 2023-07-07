@@ -29,22 +29,19 @@ export const imgConfig = {
 };
 
 export function Chat() {
-  const messagesById = useStoreContext();
+  const { messagesById, input: inputValue, sortMessages } = useStoreContext();
   const dispatch = useDispatch();
-  const [inputValue, setInputValue] = useState("");
-  const [sortMessages, setSortMessages] = useState(false);
 
   const sendMessage = () => {
     dispatch({
       type: "sendMessage",
-      payload: {
-        inputValue,
-      },
     });
   };
 
   const onSort = () => {
-    setSortMessages((prev) => !prev);
+    dispatch({
+      type: "setSort",
+    });
   };
 
   return (
@@ -72,7 +69,14 @@ export function Chat() {
             <Avatar src={imgConfig["Darth Vader"]}></Avatar>
             <TextField
               fullWidth
-              onChange={(e) => setInputValue(e.target.value)}
+              onChange={(e) =>
+                dispatch({
+                  type: "setInput",
+                  payload: {
+                    value: e.target.value,
+                  },
+                })
+              }
               value={inputValue}
             />
             <SendButton variant="contained" onClick={sendMessage}>

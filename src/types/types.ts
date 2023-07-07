@@ -22,12 +22,16 @@ export type FetchedMessages = {
 
 export type MessagesDict = Record<number, Message>;
 
+export type MessagesState = {
+  messagesById: MessagesDict;
+  input: string;
+  sortMessages: boolean;
+};
+
 export type ChatAction =
   | {
-      type: "sendMessage";
-      payload: {
-        inputValue: string;
-      };
+      type: "sendMessage" | "setSort";
+      payload?: undefined;
     }
   | {
       type: "onDeleteMessage" | "onStartChangeUserMessage" | "onMessageSave";
@@ -47,5 +51,10 @@ export type ChatAction =
       payload: {
         messages: MessagesDict;
       };
+    }
+  | {
+      type: "setInput";
+      payload: {
+        value: string;
+      };
     };
-

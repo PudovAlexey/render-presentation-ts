@@ -7,14 +7,20 @@ import {
   useReducer,
 } from "react";
 import { fetchThousandMessages } from "./utils/fetchMessages";
-import { ChatAction, MessagesDict } from "./types/types";
+import { ChatAction, MessagesDict, MessagesState } from "./types/types";
 import { imgConfig } from "./utils/imgConfig";
 
-const StoreContext = createContext<MessagesDict>({});
+const initialValue = {
+  messagesById: {},
+  input: "",
+  sortMessages: false,
+};
+
+const StoreContext = createContext<MessagesState>(initialValue);
 const DispatchContext = createContext<Dispatch<ChatAction> | null>(null);
 
 export function ChatContext({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, {});
+  const [state, dispatch] = useReducer(reducer, initialValue);
 
   useEffect(() => {
     fetchThousandMessages().then((messages: MessagesDict) => {
@@ -34,7 +40,7 @@ export function ChatContext({ children }: { children: React.ReactNode }) {
   );
 }
 
-const reducer = (state: MessagesDict, action: ChatAction): MessagesDict => {
+const reducer = (state: MessagesState, action: ChatAction): MessagesState => {
   const { type, payload } = action;
   switch (type) {
     case "sendMessage":
@@ -42,45 +48,78 @@ const reducer = (state: MessagesDict, action: ChatAction): MessagesDict => {
 
       return {
         ...state,
-        [newId]: {
-          id: newId,
-          img: imgConfig["Darth Vader"],
-          name: "Darth Vader",
-          message: payload.inputValue,
-          isMessageEdit: false,
+        input: "",
+        messagesById: {
+          ...state.messagesById,
+          [newId]: {
+            id: newId,
+            img: imgConfig["Darth Vader"],
+            name: "Darth Vader",
+            message: state.input,
+            isMessageEdit: false,
+          },
         },
       };
     case "onDeleteMessage":
-      const cloneMessagesById = { ...state };
+      const cloneMessagesById = { ...state.messagesById };
 
       delete cloneMessagesById[payload.messageId];
-      return cloneMessagesById;
+
+      return {
+        ...state,
+        messagesById: cloneMessagesById,
+      };
     case "onStartChangeUserMessage":
       return {
         ...state,
-        [payload.messageId]: {
-          ...state[payload.messageId],
-          isMessageEdit: true,
+        messagesById: {
+          ...state.messagesById,
+          [payload.messageId]: {
+            ...state.messagesById[payload.messageId],
+            isMessageEdit: true,
+          },
         },
       };
     case "changeMessage":
       return {
         ...state,
-        [payload.messageId]: {
-          ...state[payload.messageId],
-          message: payload.value,
+        messagesById: {
+          ...state.messagesById,
+          [payload.messageId]: {
+            ...state.messagesById[payload.messageId],
+            message: payload.value,
+          },
         },
       };
     case "onMessageSave":
       return {
         ...state,
-        [payload.messageId]: {
-          ...state[payload.messageId],
-          isMessageEdit: false,
+        messagesById: {
+          ...state.messagesById,
+          [payload.messageId]: {
+            ...state.messagesById[payload.messageId],
+            isMessageEdit: false,
+          },
         },
       };
     case "fetchMessages":
-      return action.payload.messages;
+      return {
+        ...state,
+        messagesById: {
+          ...action.payload.messages,
+        },
+      };
+
+    case "setInput":
+      return {
+        ...state,
+        input: payload.value,
+      };
+    case "setSort":
+      return {
+        ...state,
+        sortMessages: !state.sortMessages,
+      };
     default:
       return state;
   }
