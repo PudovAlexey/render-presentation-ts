@@ -57,4 +57,10 @@ export type ChatAction =
       payload: {
         value: string;
       };
+    }
+  | {
+      type: "setAlert";
+      payload: {
+        value: string;
+      };
     };
