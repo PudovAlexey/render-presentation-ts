@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Avatar,
   Box,
@@ -14,34 +14,32 @@ import {
 import background from "../public/background.jpg";
 import styled from "@emotion/styled";
 import iconSrc from "../public/icons8-star-wars-1344.png";
-import Leia from ".././public/avatar/leia-organa.jpg";
-import DartVaider from ".././public/avatar/Dart Waider.jpg";
-import Luke from ".././public/avatar/Luke_Skywalker.jpg";
-import Owen from ".././public/avatar/Owen-lars.jpg";
-import { useDispatch, useStoreContext } from "../ChatContext";
-import { Message } from "../types/types";
-
-export const imgConfig = {
-  "Luke Skywalker": Luke,
-  "Darth Vader": DartVaider,
-  "Leia Organa": Leia,
-  "Owen Lars": Owen,
-};
-
+import { fetchMessages, fetchThousandMessages } from "../utils/fetchMessages";
+import { imgConfig } from "../utils/imgConfig";
+import { Message, MessagesDict } from "../types/types";
+import { useStoreContext, useDispatch } from "../ChatContext";
 export function Chat() {
-  const { messagesById, input: inputValue, sortMessages } = useStoreContext();
-  const dispatch = useDispatch();
+  const [messagesById, setMessagesById] = useState<MessagesDict>({});
+  const [inputValue, setInputValue] = useState("");
+  const [sortMessages, setSortMessages] = useState(false);
 
   const sendMessage = () => {
-    dispatch({
-      type: "sendMessage",
-    });
+    const newId: Message["id"] = +new Date();
+
+    setMessagesById((prev) => ({
+      ...prev,
+      [newId]: {
+        id: newId,
+        img: imgConfig["Darth Vader"],
+        name: "Darth Vader",
+        message: inputValue,
+        isMessageEdit: false,
+      },
+    }));
   };
 
   const onSort = () => {
-    dispatch({
-      type: "setSort",
-    });
+    setSortMessages((prev) => !prev);
   };
 
   return (
@@ -58,9 +56,14 @@ export function Chat() {
               .sort((a, b) => (!sortMessages ? +a - +b : +b - +a))
               .map((id) => {
                 const messageId = +id as Message["id"];
-
-                const messageItem = messagesById[messageId];
-                return <MessageComponent key={id} messageItem={messageItem} />;
+                const message = messagesById[messageId];
+                return (
+                  <MessageComponent
+                    key={id}
+                    message={message}
+                    setMessagesById={setMessagesById}
+                  />
+                );
               })}
           </List>
         </AppBox>
@@ -69,14 +72,7 @@ export function Chat() {
             <Avatar src={imgConfig["Darth Vader"]}></Avatar>
             <TextField
               fullWidth
-              onChange={(e) =>
-                dispatch({
-                  type: "setInput",
-                  payload: {
-                    value: e.target.value,
-                  },
-                })
-              }
+              onChange={(e) => setInputValue(e.target.value)}
               value={inputValue}
             />
             <SendButton variant="contained" onClick={sendMessage}>
@@ -90,60 +86,62 @@ export function Chat() {
 }
 
 const MessageComponent = React.memo(function Message({
-  messageItem,
+  message,
+  setMessagesById,
 }: {
-  messageItem: Message;
+  message: Message;
+  setMessagesById: React.Dispatch<React.SetStateAction<MessagesDict>>;
 }) {
-  const { id, name, isMessageEdit, img, message } = messageItem;
-  const dispatch = useDispatch();
+  const { id: messageId } = message;
 
   const onDeleteMessage = (messageId: Message["id"]) => {
-    dispatch({
-      type: "onDeleteMessage",
-      payload: {
-        messageId,
-      },
+    setMessagesById((prev) => {
+      const cloneMessagesById = { ...prev };
+
+      delete cloneMessagesById[messageId];
+      return cloneMessagesById;
     });
   };
 
   const onStartChangeUserMessage = (messageId: Message["id"]) => {
-    dispatch({
-      type: "onStartChangeUserMessage",
-      payload: {
-        messageId,
+    setMessagesById((prev) => ({
+      ...prev,
+      [messageId]: {
+        ...prev[messageId],
+        isMessageEdit: true,
       },
-    });
+    }));
   };
 
   const changeMessage = (messageId: Message["id"], value: string) => {
-    dispatch({
-      type: "changeMessage",
-      payload: {
-        messageId,
-        value,
+    setMessagesById((prev) => ({
+      ...prev,
+      [messageId]: {
+        ...prev[messageId],
+        message: value,
       },
-    });
+    }));
   };
 
   const onMessageSave = (messageId: Message["id"]) => {
-    dispatch({
-      type: "onMessageSave",
-      payload: {
-        messageId,
+    setMessagesById((prev) => ({
+      ...prev,
+      [messageId]: {
+        ...prev[messageId],
+        isMessageEdit: false,
       },
-    });
+    }));
   };
 
   return (
     <Box>
       <ListItem
-        key={id}
         secondaryAction={
-          isMessageEdit ? (
+          message.isMessageEdit ? (
             <Button
               color="success"
               variant="contained"
-              onClick={() => onMessageSave(id)}
+              onClick={() => onMessageSave(messageId)}
             >
               SAVE
             </Button>
@@ -152,11 +150,11 @@ const MessageComponent = React.memo(function Message({
               <Button
                 variant="contained"
                 color="success"
-                onClick={() => onStartChangeUserMessage(id)}
+                onClick={() => onStartChangeUserMessage(messageId)}
               >
                 EDIT MESSAGE
               </Button>
-              <Button onClick={() => onDeleteMessage(id)}>
+              <Button onClick={() => onDeleteMessage(messageId)}>
                 DELETE MESSAGE
               </Button>
             </Box>
@@ -164,17 +162,17 @@ const MessageComponent = React.memo(function Message({
         }
       >
         <ListItemAvatar>
-          <Avatar src={img}></Avatar>
+          <Avatar src={message.img}></Avatar>
         </ListItemAvatar>
         <Box>
-          <Typography fontWeight={"bold"}>{name}</Typography>
-          {!isMessageEdit ? (
-            <MessageTypography>{message}</MessageTypography>
+          <Typography fontWeight={"bold"}>{message.name}</Typography>
+          {!message.isMessageEdit ? (
+            <MessageTypography>{message.message}</MessageTypography>
           ) : (
             <TextField
               fullWidth
-              onChange={(e) => changeMessage(id, e.target.value)}
-              value={message}
+              onChange={(e) => changeMessage(messageId, e.target.value)}
+              value={message.message}
             />
           )}
         </Box>
