@@ -10,7 +10,6 @@ import { ChatContext } from "./ChatContext";
 
 function App() {
   return (
-    <ChatContext>
       <Box className="App">
         <Routes>
           <Route path="/" element={<Start />}></Route>
@@ -19,7 +18,6 @@ function App() {
           <Route path="/list" element={<Chat />}></Route>
         </Routes>
       </Box>
-    </ChatContext>
   );
 }
 
